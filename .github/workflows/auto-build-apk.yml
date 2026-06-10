@@ -1,0 +1,66 @@
+name: 自动打包 Flutter Android APK
+
+# 触发条件：当创建新的Release时自动运行
+on:
+  release:
+    types: [created]
+
+# 权限设置
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-android-apk:
+    name: 打包 Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+    # 步骤1：检出代码
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    # 步骤2：设置 Flutter 环境
+    - name: 设置 Flutter 3.0
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.0.0'
+        channel: 'stable'
+    
+    # 步骤3：安装依赖
+    - name: 安装依赖包
+      run: |
+        cd flutter_project
+        flutter pub get
+      shell: bash
+    
+    # 步骤4：构建 APK（发布版）
+    - name: 构建 APK
+      run: |
+        cd flutter_project
+        flutter build apk --release
+      shell: bash
+    
+    # 步骤5：重命名 APK（去掉后缀）
+    - name: 重命名 APK
+      run: |
+        cd flutter_project
+        cp build/app/outputs/apk/release/app-release.apk "build/app/outputs/apk/release/个人记账APP.apk"
+      shell: bash
+    
+    # 步骤6：上传 APK 到 Release
+    - name: 上传 APK 到 Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: flutter_project/build/app/outputs/apk/release/个人记账APP.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    # 步骤7：打印下载链接
+    - name: 打印下载信息
+      run: |
+        echo "======================================"
+        echo "✅ APK 文件已自动上传到 Release！"
+        echo "下载地址: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.release.tag_name }}"
+        echo "======================================"
+      shell: bash
