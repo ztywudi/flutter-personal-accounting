@@ -22,10 +22,10 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Flutter 3.16.0
+    - name: Setup Flutter 3.0.0
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.16.0'
+        flutter-version: '3.0.0'
         channel: 'stable'
 
     - name: Flutter version

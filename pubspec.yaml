@@ -13,13 +13,12 @@ dependencies:
   path: ^1.8.3
   provider: ^6.1.1
   fl_chart: ^0.63.0
-  intl: ^0.19.0
+  intl: ^0.17.0
   table_calendar: ^3.0.9
   shared_preferences: ^2.2.2
-  uuid: ^4.3.3
+  uuid: ^3.0.7
 
-dev_dependencies:
-  flutter_lints: ^2.0.0
+dev_dependencies: {}
 
 flutter:
   uses-material-design: true
