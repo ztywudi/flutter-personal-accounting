@@ -1,61 +1,99 @@
-name: 自动打包 Flutter Android APK
+name: Build and Release
 
-# 触发条件：当创建新的Release时自动运行
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
-# 权限设置
 permissions:
   contents: write
-  packages: write
+  pages: write
+  id-token: write
 
 jobs:
-  build-android-apk:
-    name: 打包 Android APK
+  build-apk:
+    name: Build Android APK
     runs-on: ubuntu-latest
-    
     steps:
-    # 步骤1：检出代码
-    - name: 检出代码
+    - name: Checkout
       uses: actions/checkout@v4
-    
-    # 步骤2：设置 Flutter 环境
-    - name: 设置 Flutter 3.10.0
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.10.0'
         channel: 'stable'
-    
-    # 步骤3：安装依赖
-    - name: 安装依赖包
+
+    - name: Install dependencies
       run: flutter pub get
-      shell: bash
-    
-    # 步骤4：构建 APK（发布版）
-    - name: 构建 APK
+
+    - name: Build APK
       run: flutter build apk --release
-      shell: bash
-    
-    # 步骤5：重命名 APK（去掉后缀）
-    - name: 重命名 APK
-      run: |
-        cp build/app/outputs/apk/release/app-release.apk "build/app/outputs/apk/release/个人记账APP.apk"
-      shell: bash
-    
-    # 步骤6：上传 APK 到 Release
-    - name: 上传 APK 到 Release
+
+    - name: Rename APK
+      run: cp build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/personal-accounting.apk
+
+    - name: Upload APK to Release
       uses: softprops/action-gh-release@v2
       with:
-        files: build/app/outputs/apk/release/个人记账APP.apk
+        files: build/app/outputs/apk/release/personal-accounting.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    # 步骤7：打印下载链接
-    - name: 打印下载信息
+
+  build-web:
+    name: Build Flutter Web
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.10.0'
+        channel: 'stable'
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build Web
+      run: flutter build web --release
+
+    - name: Package web as zip
       run: |
-        echo "======================================"
-        echo "✅ APK 文件已自动上传到 Release！"
-        echo "下载地址: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.release.tag_name }}"
-        echo "======================================"
-      shell: bash
+        cd build/web
+        zip -r ../../personal-accounting-web.zip .
+        cd ../..
+
+    - name: Upload Web zip to Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: personal-accounting-web.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: build/web
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build-web
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
