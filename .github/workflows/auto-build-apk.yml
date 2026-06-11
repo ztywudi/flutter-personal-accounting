@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build Android APK
 
 on:
   release:
@@ -7,28 +7,29 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   build-apk:
-    name: Build Android APK
+    name: Build APK
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Setup Java
+    - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Flutter
+    - name: Setup Flutter 3.10.0
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.10.0'
         channel: 'stable'
+
+    - name: Flutter version
+      run: flutter --version
 
     - name: Install dependencies
       run: flutter pub get
@@ -36,64 +37,9 @@ jobs:
     - name: Build APK
       run: flutter build apk --release
 
-    - name: Rename APK
-      run: cp build/app/outputs/apk/release/app-release.apk build/app/outputs/apk/release/personal-accounting.apk
-
     - name: Upload APK to Release
       uses: softprops/action-gh-release@v2
       with:
-        files: build/app/outputs/apk/release/personal-accounting.apk
+        files: build/app/outputs/apk/release/app-release.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-web:
-    name: Build Flutter Web
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.10.0'
-        channel: 'stable'
-
-    - name: Install dependencies
-      run: flutter pub get
-
-    - name: Build Web
-      run: flutter build web --release
-
-    - name: Package web as zip
-      run: |
-        cd build/web
-        zip -r ../../personal-accounting-web.zip .
-        cd ../..
-
-    - name: Upload Web zip to Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: personal-accounting-web.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: build/web
-
-  deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: build-web
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4

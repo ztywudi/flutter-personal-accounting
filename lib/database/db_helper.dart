@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:path/path.dart';
 
 class DBHelper {
@@ -11,22 +9,6 @@ class DBHelper {
   Future<Database> get database async => _database ??= await _initDB();
 
   Future<Database> _initDB() async {
-    // Web platform: use sqflite_common_ffi_web
-    if (sqflite_ffi_web.platform.isWeb) {
-      databaseFactory = sqflite_ffi_web.databaseFactoryFfiWeb;
-      final dbPath = await databaseFactory.getDatabasesPath();
-      final path = join(dbPath, 'accounting.db');
-      return await databaseFactory.openDatabase(
-        path,
-        options: OpenDatabaseOptions(
-          version: 2,
-          onCreate: _onCreate,
-          onUpgrade: _onUpgrade,
-        ),
-      );
-    }
-
-    // Mobile platform: use sqflite
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'accounting.db');
     return await openDatabase(path, version: 2, onCreate: _onCreate, onUpgrade: _onUpgrade);
