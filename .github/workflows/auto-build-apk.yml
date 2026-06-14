@@ -16,6 +16,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Clear Flutter cache
+      run: |
+        rm -rf $HOME/.flutter
+        rm -rf $HOME/flutter
+        echo "Flutter cache cleared"
+
     - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
