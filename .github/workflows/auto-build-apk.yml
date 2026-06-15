@@ -41,7 +41,7 @@ jobs:
       run: flutter pub get
 
     - name: Build APK
-      run: flutter build apk --release
+      run: flutter build apk --release --ignore-deprecation
 
     - name: Upload APK to Release
       uses: softprops/action-gh-release@v2
