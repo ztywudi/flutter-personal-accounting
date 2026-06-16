@@ -593,7 +593,7 @@ class _DateTimePickerState extends State<_DateTimePicker> {
                 backgroundColor: const Color(0xFF4F6EF7),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 elevation: 0,
-                shadowColor: const Color(0xFF4F6EF7).withValues(alpha: 0.35),
+                shadowColor: const Color(0xFF4F6EF7).withOpacity(0.35),
               ),
               child: const Text('✓ 确认选择', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
             ),

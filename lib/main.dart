@@ -142,7 +142,7 @@ class _MainNavigatorState extends State<MainNavigator> {
           decoration: BoxDecoration(
             color: const Color(0xFF4F6EF7),
             borderRadius: BorderRadius.circular(25),
-            boxShadow: [BoxShadow(color: const Color(0xFF4F6EF7).withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: const Color(0xFF4F6EF7).withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))],
           ),
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
