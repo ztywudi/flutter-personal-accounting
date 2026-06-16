@@ -1,6 +1,0 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.accounting_app">
-    <!-- 这是 Flutter v2 嵌入的项目级配置 -->
-    <application android:label="记账" android:icon="@mipmap/ic_launcher">
-    </application>
-</manifest>
