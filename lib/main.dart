@@ -450,14 +450,28 @@ class SettingsPage extends StatelessWidget {
       body: ListView(
         children: [
           ListTile(
+            leading: const Icon(Icons.category, color: Color(0xFF667eea)),
+            title: const Text('分类管理'),
+            subtitle: const Text('自定义收支分类'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CategoryManagePage()),
+              );
+              setState(() {});
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
             leading: const Icon(Icons.info_outline, color: Color(0xFF667eea)),
             title: const Text('关于'),
-            subtitle: const Text('个人记账本 v1.0.0'),
+            subtitle: const Text('个人记账本 v2.0.0'),
             onTap: () {
               showAboutDialog(
                 context: context,
                 applicationName: '个人记账本',
-                applicationVersion: '1.0.0',
+                applicationVersion: '2.0.0',
                 children: const [Text('\n简单易用的个人记账应用')],
               );
             },
@@ -735,6 +749,9 @@ class CategoryConfig {
 }
 
 // ==================== 数据库 ====================
+
+
+// ==================== 数据库 ====================
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -750,12 +767,28 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = p.join(documentsDirectory.path, filePath);
-    return await openDatabase(path, version: 2, onCreate: _createDB, onUpgrade: _upgradeDB);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
 
   Future<void> _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE records (
+      CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        type INTEGER NOT NULL,
+        is_system INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS records (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         amount REAL NOT NULL,
         category TEXT NOT NULL,
@@ -764,11 +797,293 @@ class DatabaseHelper {
         date TEXT NOT NULL
       )
     ''');
+
+    for (final c in CategoryConfig.defaultExpense) {
+      await db.insert('categories', c);
+    }
+    for (final c in CategoryConfig.defaultIncome) {
+      await db.insert('categories', c);
+    }
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // 兼容旧数据
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          icon TEXT NOT NULL,
+          color INTEGER NOT NULL,
+          type INTEGER NOT NULL,
+          is_system INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      for (final c in CategoryConfig.defaultExpense) {
+        final exists = Sqflite.firstIntValue(
+            await db.query('categories', where: 'name = ? AND type = 0', whereArgs: [c['name']]));
+        if (exists == 0 || exists == null) await db.insert('categories', c);
+      }
+      for (final c in CategoryConfig.defaultIncome) {
+        final exists = Sqflite.firstIntValue(
+            await db.query('categories', where: 'name = ? AND type = 1', whereArgs: [c['name']]));
+        if (exists == 0 || exists == null) await db.insert('categories', c);
+      }
     }
+  }
+
+  // ===== 分类 CRUD =====
+  Future<List<Map<String, dynamic>>> getCategories(int type) async {
+    final db = await database;
+    return db.query('categories',
+        where: 'type = ?', whereArgs: [type], orderBy: 'id ASC');
+  }
+
+  Future<int> insertCategory(Map<String, dynamic> cat) async {
+    final db = await database;
+    return db.insert('categories', cat);
+  }
+
+  Future<int> deleteCategory(int id) async {
+    final db = await database;
+    return db.delete('categories', where: 'id = ? AND is_system = 0', whereArgs: [id]);
+  }
+
+  // ===== 记录 CRUD =====
+  Future<List<Map<String, dynamic>>> getRecords({String? monthLike}) async {
+    final db = await database;
+    if (monthLike != null) {
+      return db.query('records',
+          where: "date LIKE ?", whereArgs: ['$monthLike%'],
+          orderBy: 'date DESC, id DESC');
+    }
+    return db.query('records', orderBy: 'date DESC, id DESC');
+  }
+
+  Future<int> insertRecord(Map<String, dynamic> r) async {
+    final db = await database;
+    return db.insert('records', r);
+  }
+
+  Future<int> deleteRecord(int id) async {
+    final db = await database;
+    return db.delete('records', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> clearRecords() async {
+    final db = await database;
+    await db.delete('records');
+  }
+}
+
+// ==================== 分类配置（含默认数据） ====================
+class CategoryConfig {
+  static final defaultExpense = [
+    {'name': '餐饮', 'icon': '🍚', 'color': 0xFFFF6B6B, 'type': 0, 'is_system': 1},
+    {'name': '交通', 'icon': '🚗', 'color': 0xFF4ECDC4, 'type': 0, 'is_system': 1},
+    {'name': '购物', 'icon': '🛒', 'color': 0xFFFFBE0B, 'type': 0, 'is_system': 1},
+    {'name': '娱乐', 'icon': '🎮', 'color': 0xFF7209B7, 'type': 0, 'is_system': 1},
+    {'name': '住房', 'icon': '🏠', 'color': 0xFF4361EE, 'type': 0, 'is_system': 1},
+    {'name': '医疗', 'icon': '💊', 'color': 0xFFF72585, 'type': 0, 'is_system': 1},
+    {'name': '教育', 'icon': '📚', 'color': 0xFF3A0CA3, 'type': 0, 'is_system': 1},
+    {'name': '通讯', 'icon': '📱', 'color': 0xFF06D6A0, 'type': 0, 'is_system': 1},
+    {'name': '人情', 'icon': '🎁', 'color': 0xFFE63946, 'type': 0, 'is_system': 1},
+    {'name': '其他', 'icon': '📦', 'color': 0xFF6C757D, 'type': 0, 'is_system': 1},
+  ];
+
+  static final defaultIncome = [
+    {'name': '工资', 'icon': '💰', 'color': 0xFF2EC4B6, 'type': 1, 'is_system': 1},
+    {'name': '奖金', 'icon': '🎉', 'color': 0xFFE71D36, 'type': 1, 'is_system': 1},
+    {'name': '投资', 'icon': '📈', 'color': 0xFF0116272, 'type': 1, 'is_system': 1},
+    {'name': '兼职', 'icon': '💼', 'color': 0xFF7209B7, 'type': 1, 'is_system': 1},
+    {'name': '红包', 'icon': '🧧', 'color': 0xFFE63946, 'type': 1, 'is_system': 1},
+    {'name': '其他', 'icon': '💵', 'color': 0xFF6C757D, 'type': 1, 'is_system': 1},
+  ];
+
+  static List<Map<String, dynamic>> getCategoriesByType(int type) {
+    return type == 0 ? defaultExpense : defaultIncome;
+  }
+
+  static Map<String, dynamic> getCategory(int type, String name) {
+    final list = getCategoriesByType(type);
+    try {
+      return list.firstWhere((c) => c['name'] == name);
+    } catch (e) {
+      return {'name': name, 'icon': '📦', 'color': 0xFF6C757D};
+    }
+  }
+}
+
+// ==================== 分类管理页面 ====================
+class CategoryManagePage extends StatefulWidget {
+  final int type;
+  const CategoryManagePage({Key? key, required this.type}) : super(key: key);
+
+  @override
+  _CategoryManagePageState createState() => _CategoryManagePageState();
+}
+
+class _CategoryManagePageState extends State<CategoryManagePage> {
+  List<Map<String, dynamic>> _categories = [];
+
+  static final _colorOptions = [
+    {'name': '红', 'value': 0xFFFF6B6B},
+    {'name': '橙', 'value': 0xFFFFBE0B},
+    {'name': '绿', 'value': 0xFF2EC4B6},
+    {'name': '蓝', 'value': 0xFF4361EE},
+    {'name': '紫', 'value': 0xFF7209B7},
+    {'name': '粉', 'value': 0xFFFF6B9D},
+    {'name': '青', 'value': 0xFF06D6A0},
+    {'name': '灰', 'value': 0xFF6C757D},
+  ];
+
+  static final _iconOptions = [
+    '🍚','🚗','🛒','🎮','🏠','💊','📚','📱',
+    '💰','🎉','📈','💵','🧧','📦','☕','🎵',
+    '🏀','📍','✈️','🎸','🏋','🎯',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final db = await DatabaseHelper.instance.database;
+    final list = await db.query('categories',
+        where: 'type = ?', whereArgs: [widget.type], orderBy: 'is_system ASC, id ASC');
+    setState(() => _categories = list);
+  }
+
+  String _getIcon(String? icon) => icon ?? '📦';
+  Color _getColor(int? c) => c != null ? Color(c) : Color(0xFF6C757D);
+
+  void _showAddDialog() {
+    String name = '';
+    String icon = _iconOptions[0];
+    int color = _colorOptions[0]['value'] as int;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setState2) => AlertDialog(
+          title: const Text('添加分类'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: '分类名称', border: OutlineInputBorder()),
+                  onChanged: (v) => name = v.trim(),
+                ),
+                const SizedBox(height: 16),
+                const Text('选择图标：', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6, runSpacing: 6,
+                  children: _iconOptions.map((ic) {
+                    final selected = icon == ic;
+                    return GestureDetector(
+                      onTap: () => setState2(() => icon = ic),
+                      child: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: selected ? Colors.indigo.shade100 : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: selected ? Border.all(color: Colors.indigo, width: 2) : null,
+                        ),
+                        child: Center(child: Text(ic, style: const TextStyle(fontSize: 20))),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                const Text('选择颜色：', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: _colorOptions.map((c) {
+                    final selected = color == c['value'];
+                    return GestureDetector(
+                      onTap: () => setState2(() => color = c['value'] as int),
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(
+                          color: Color(c['value'] as int),
+                          shape: BoxShape.circle,
+                          border: selected ? Border.all(color: Colors.black87, width: 2) : null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            ElevatedButton(
+              onPressed: () async {
+                if (name.isEmpty) return;
+                await DatabaseHelper.instance.insertCategory({
+                  'name': name,
+                  'icon': icon,
+                  'color': color,
+                  'type': widget.type,
+                  'is_system': 0,
+                });
+                if (mounted) Navigator.pop(ctx);
+                _load();
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.type == 0 ? '支出分类' : '收入分类';
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(icon: const Icon(Icons.add), onPressed: _showAddDialog),
+        ],
+      ),
+      body: _categories.isEmpty
+          ? const Center(child: Text('暂无分类', style: TextStyle(color: Colors.grey)))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final cat = _categories[index];
+                final isSystem = (cat['is_system'] as int) == 1;
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _getColor(cat['color'] as int?),
+                      child: Text(_getIcon(cat['icon'] as String?), style: const TextStyle(fontSize: 20)),
+                    ),
+                    title: Text(cat['name'] as String),
+                    trailing: isSystem
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await DatabaseHelper.instance.deleteCategory(cat['id'] as int);
+                              _load();
+                            },
+                          ),
+                  ),
+                );
+              },
+            ),
+    );
   }
 }
