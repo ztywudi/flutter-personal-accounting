@@ -665,17 +665,19 @@ class _AddRecordPageState extends State<AddRecordPage> {
           const SizedBox(height: 24),
 
           // 日期选择
-          ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(16),
             ),
-            leading: const Icon(Icons.calendar_today, color: Color(0xFF667eea)),
-            title: const Text('日期'),
-            trailing: Text(DateFormat('yyyy-MM-dd').format(_selectedDate),
-                style: const TextStyle(color: Color(0xFF667eea))),
-            onTap: _pickDate,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: const Icon(Icons.calendar_today, color: Color(0xFF667eea)),
+              title: const Text('日期'),
+              trailing: Text(DateFormat('yyyy-MM-dd').format(_selectedDate),
+                  style: const TextStyle(color: Color(0xFF667eea))),
+              onTap: _pickDate,
+            ),
           ),
           const SizedBox(height: 16),
 
