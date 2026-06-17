@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -173,18 +172,18 @@ class _AddRecordPageState extends State<AddRecordPage> {
         child: ListView(
           children: [
             // 类型选择
-            SegmentedControl<int>(
-              children: const {
-                0: Text('支出'),
-                1: Text('收入'),
-              },
-              onValueChanged: (value) {
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('支出')),
+                ButtonSegment(value: 1, label: Text('收入')),
+              ],
+              selected: {_type},
+              onSelectionChanged: (Set<int> selection) {
                 setState(() {
-                  _type = value;
-                  _category = value == 0 ? '餐饮' : '工资';
+                  _type = selection.first;
+                  _category = _type == 0 ? '餐饮' : '工资';
                 });
               },
-              groupValue: _type,
             ),
             const SizedBox(height: 16),
             
@@ -286,7 +285,7 @@ class DatabaseHelper {
 
   Future<Database> _initDB(String filePath) async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
-    final path = join(documentsDirectory.path, filePath);
+    final path = p.join(documentsDirectory.path, filePath);
 
     return await openDatabase(
       path,
