@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>个人记账本</title>
+    
+    <!-- PWA 配置 -->
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoRob7mlbDmjaLlj5YiLCJzaG9ydF9uYW1lIjoTom7mlbDmjaLli5YiLCJkZXNjcmlwdGlvbiI6IuS6i+euoSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5IjoTdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiM2NjdlZWEiLCJ0aGVtZV9jb2xvciI6IiM2NjdlZWEiLCJpY29ucyI6W119">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="记账本">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .stat-card.income {
+            border-left: 4px solid #28a745;
+        }
+        
+        .stat-card.expense {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .stat-amount {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .income .stat-amount {
+            color: #28a745;
+        }
+        
+        .expense .stat-amount {
+            color: #dc3545;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .record-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        
+        .record-item:active {
+            transform: scale(0.98);
+        }
+        
+        .record-info {
+            flex: 1;
+        }
+        
+        .record-category {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .record-note {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .record-amount {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .record-amount.income {
+            color: #28a745;
+        }
+        
+        .record-amount.expense {
+            color: #dc3545;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #e9ecef;
+            border-radius: 20px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        
+        .category-badge.selected {
+            background: #667eea;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 5px 10px;
+            margin-left: 10px;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        /* 安装提示 */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .install-prompt.show {
+            display: block;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .install-prompt p {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .install-prompt .btn {
+            margin: 5px 0;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 个人记账本</h1>
+            <div class="stats">
+                <div class="stat-card income">
+                    <div class="stat-label">总收入</div>
+                    <div class="stat-amount" id="totalIncome">¥0.00</div>
+                </div>
+                <div class="stat-card expense">
+                    <div class="stat-label">总支出</div>
+                    <div class="stat-amount" id="totalExpense">¥0.00</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('records')">📝 账单</button>
+            <button class="tab" onclick="showTab('add')">➕ 添加</button>
+            <button class="tab" onclick="showTab('stats')">📈 统计</button>
+        </div>
+        
+        <div id="recordsTab" class="card">
+            <h2>近期账单</h2>
+            <div id="recordsList"></div>
+        </div>
+        
+        <div id="addTab" class="card hidden">
+            <h2>添加账单</h2>
+            <form id="addForm">
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="type" onchange="updateCategories()">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>金额 (¥)</label>
+                    <input type="number" id="amount" step="0.01" min="0" placeholder="请输入金额" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>分类</label>
+                    <div id="categoryList"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="note" rows="3" placeholder="可选：添加备注"></textarea>
+                </div>
+                
+                <button type="submit" class="btn">保存账单</button>
+            </form>
+        </div>
+        
+        <div id="statsTab" class="card hidden">
+            <h2>统计分析</h2>
+            <div id="statsContent"></div>
+        </div>
+    </div>
+    
+    <!-- 安装提示 -->
+    <div id="installPrompt" class="install-prompt">
+        <p>📱 是否将"个人记账本"安装到手机主屏幕？</p>
+        <p style="font-size: 14px; color: #666;">安装后可以像APP一样使用！</p>
+        <button class="btn" onclick="installApp()">立即安装</button>
+        <button class="btn btn-secondary" onclick="dismissInstall()">暂不安装</button>
+    </div>
+    
+    <script>
+        // 数据存储
+        let records = JSON.parse(localStorage.getItem('records') || '[]');
+        
+        const categories = {
+            expense: [
+                { id: 'food', name: '🍚 餐饮', icon: '🍚' },
+                { id: 'transport', name: '🚗 交通', icon: '🚗' },
+                { id: 'shopping', name: '🛒 购物', icon: '🛒' },
+                { id: 'entertainment', name: '🎮 娱乐', icon: '🎮' },
+                { id: 'housing', name: '🏠 住房', icon: '🏠' },
+                { id: 'medical', name: '💊 医疗', icon: '💊' },
+                { id: 'education', name: '📚 教育', icon: '📚' },
+                { id: 'other_expense', name: '📦 其他', icon: '📦' }
+            ],
+            income: [
+                { id: 'salary', name: '💰 工资', icon: '💰' },
+                { id: 'bonus', name: '🎁 奖金', icon: '🎁' },
+                { id: 'investment', name: '📈 投资', icon: '📈' },
+                { id: 'parttime', name: '💵 兼职', icon: '💵' },
+                { id: 'other_income', name: '💸 其他', icon: '💸' }
+            ]
+        };
+        
+        let selectedCategory = null;
+        let deferredPrompt = null;
+        
+        // PWA 安装事件
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            setTimeout(() => {
+                document.getElementById('installPrompt').classList.add('show');
+            }, 3000);
+        });
+        
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('用户同意安装');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+            document.getElementById('installPrompt').classList.remove('show');
+        }
+        
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.remove('show');
+        }
+        
+        // 初始化
+        function init() {
+            updateCategories();
+            renderRecords();
+            updateStats();
+        }
+        
+        // 显示Tab
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.card').forEach(card => card.classList.add('hidden'));
+            
+            if (tabName === 'records') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('recordsTab').classList.remove('hidden');
+            } else if (tabName === 'add') {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('addTab').classList.remove('hidden');
+            } else if (tabName === 'stats') {
+                document.querySelectorAll('.tab')[2].classList.add('active');
+                document.getElementById('statsTab').classList.remove('hidden');
+                renderStats();
+            }
+        }
+        
+        // 更新分类列表
+        function updateCategories() {
+            const type = document.getElementById('type').value;
+            const categoryList = document.getElementById('categoryList');
+            selectedCategory = null;
+            
+            categoryList.innerHTML = categories[type].map(cat => 
+                `<span class="category-badge" onclick="selectCategory('${cat.id}')" id="cat-${cat.id}">${cat.name}</span>`
+            ).join('');
+        }
+        
+        // 选择分类
+        function selectCategory(catId) {
+            document.querySelectorAll('.category-badge').forEach(el => el.classList.remove('selected'));
+            document.getElementById('cat-' + catId).classList.add('selected');
+            selectedCategory = catId;
+        }
+        
+        // 渲染账单列表
+        function renderRecords() {
+            const recordsList = document.getElementById('recordsList');
+            
+            if (records.length === 0) {
+                recordsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>暂无账单记录</p>
+                        <p>点击"添加"按钮开始记账吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            recordsList.innerHTML = records.map((record, index) => {
+                const category = categories[record.type].find(c => c.id === record.category);
+                const categoryName = category ? category.name : '未分类';
+                const isExpense = record.type === 'expense';
+                
+                return `
+                    <div class="record-item">
+                        <div class="record-info">
+                            <div class="record-category">${categoryName}</div>
+                            ${record.note ? `<div class="record-note">${record.note}</div>` : ''}
+                            <div class="record-note">${record.date}</div>
+                        </div>
+                        <div class="record-amount ${record.type}">
+                            ${isExpense ? '-' : '+'}¥${record.amount.toFixed(2)}
+                        </div>
+                        <button class="delete-btn" onclick="deleteRecord(${index})">删除</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 删除账单
+        function deleteRecord(index) {
+            if (confirm('确定要删除这条记录吗？')) {
+                records.splice(index, 1);
+                saveRecords();
+                renderRecords();
+                updateStats();
+            }
+        }
+        
+        // 保存账单
+        document.getElementById('addForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const type = document.getElementById('type').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const note = document.getElementById('note').value;
+            
+            if (!amount || amount <= 0) {
+                alert('请输入有效的金额！');
+                return;
+            }
+            
+            if (!selectedCategory) {
+                alert('请选择分类！');
+                return;
+            }
+            
+            const record = {
+                id: Date.now(),
+                type: type,
+                amount: amount,
+                category: selectedCategory,
+                note: note,
+                date: new Date().toLocaleDateString('zh-CN')
+            };
+            
+            records.unshift(record);
+            saveRecords();
+            
+            // 清空表单
+            document.getElementById('amount').value = '';
+            document.getElementById('note').value = '';
+            selectedCategory = null;
+            document.querySelectorAll('.category-badge').forEach(el => el.classList.remove('selected'));
+            
+            alert('保存成功！');
+            renderRecords();
+            updateStats();
+            showTab('records');
+        });
+        
+        // 保存到LocalStorage
+        function saveRecords() {
+            localStorage.setItem('records', JSON.stringify(records));
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const totalIncome = records
+                .filter(r => r.type === 'income')
+                .reduce((sum, r) => sum + r.amount, 0);
+            
+            const totalExpense = records
+                .filter(r => r.type === 'expense')
+                .reduce((sum, r) => sum + r.amount, 0);
+            
+            document.getElementById('totalIncome').textContent = '¥' + totalIncome.toFixed(2);
+            document.getElementById('totalExpense').textContent = '¥' + totalExpense.toFixed(2);
+        }
+        
+        // 渲染统计
+        function renderStats() {
+            const statsContent = document.getElementById('statsContent');
+            
+            if (records.length === 0) {
+                statsContent.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📈</div>
+                        <p>暂无统计数据</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按分类统计
+            const expenseStats = {};
+            const incomeStats = {};
+            
+            records.forEach(record => {
+                if (record.type === 'expense') {
+                    expenseStats[record.category] = (expenseStats[record.category] || 0) + record.amount;
+                } else {
+                    incomeStats[record.category] = (incomeStats[record.category] || 0) + record.amount;
+                }
+            });
+            
+            let html = '<h3>支出分类统计</h3>';
+            if (Object.keys(expenseStats).length === 0) {
+                html += '<p style="color:#666;">暂无支出记录</p>';
+            } else {
+                for (let catId in expenseStats) {
+                    const category = categories.expense.find(c => c.id === catId);
+                    html += `
+                        <div class="record-item">
+                            <div class="record-info">
+                                <div class="record-category">${category ? category.name : catId}</div>
+                            </div>
+                            <div class="record-amount expense">¥${expenseStats[catId].toFixed(2)}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            html += '<h3 style="margin-top:30px;">收入分类统计</h3>';
+            if (Object.keys(incomeStats).length === 0) {
+                html += '<p style="color:#666;">暂无收入记录</p>';
+            } else {
+                for (let catId in incomeStats) {
+                    const category = categories.income.find(c => c.id === catId);
+                    html += `
+                        <div class="record-item">
+                            <div class="record-info">
+                                <div class="record-category">${category ? category.name : catId}</div>
+                            </div>
+                            <div class="record-amount income">¥${incomeStats[catId].toFixed(2)}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            statsContent.innerHTML = html;
+        }
+        
+        // 页面加载时初始化
+        init();
+        
+        // 注册 Service Worker（可选，用于离线使用）
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>
